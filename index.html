@@ -101,6 +101,14 @@ const pngButton=document.createElement('button');pngButton.id='pngBtn';pngButton
 if(!pngButton.parentElement){pngButton.className='';document.querySelector('.top-actions').appendChild(pngButton);}
 pngButton.addEventListener('click',()=>{const a=document.createElement('a');a.download=`evolver-world-generation-${generation}.png`;a.href=$('world').toDataURL('image/png');a.click();toast('World image exported as PNG.');});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&!['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement?.tagName)&&!$('modal').classList.contains('show')){e.preventDefault();play();}if(e.key==='Escape')$('modal').classList.remove('show');});
+/* Temporary event lifecycle: environmental disturbances expire after five generations. */
+let activeEventExpiry=null,activeEventRestore=null;
+const originalTriggerEvent=triggerEvent;
+triggerEvent=function(type){const before={food:$('food').value,temp:$('temp').value,migration:$('migration').value};originalTriggerEvent(type);activeEventRestore={};for(const id of Object.keys(before)){if($(id).value!==before[id])activeEventRestore[id]=before[id]}activeEventExpiry=generation+5;toast('Event active for 5 generations');};
+const originalStepWithCap=step;
+step=function(){originalStepWithCap();if(activeEventExpiry!==null&&generation>=activeEventExpiry){if(activeEventRestore){for(const [id,value] of Object.entries(activeEventRestore))$(id).value=value;updateControlOutputs();updateAll();drawWorld();drawChart();}eventEffects={};activeEventExpiry=null;activeEventRestore=null;log('Event expired','The temporary environmental disturbance has ended and affected controls have returned to their pre-event settings.');updateAll();drawWorld();drawChart();toast('Environmental event expired');}};
+const originalInitWithEvents=init;
+init=function(){if(activeEventRestore){for(const [id,value] of Object.entries(activeEventRestore))$(id).value=value;}activeEventExpiry=null;activeEventRestore=null;eventEffects={};updateControlOutputs();originalInitWithEvents();};
 updateControlOutputs();$('maxPopulationOut').textContent=`${params().maxPopulation.toLocaleString()} organisms`;init();
 })();
 </script></body></html>
